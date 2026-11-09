@@ -14,43 +14,52 @@ pub const UnixPermissions = packed struct(u9) {
     owner_execute: bool,
     owner_write: bool,
     owner_read: bool,
+
+    // will return in formatted 10byte buffer
+    pub fn formatLs(self: UnixPermissions, buf: *[10]u8) []const u8 {
+        buf[0] = '.'; // default file flag, we'll use 'd' for directory
+        buf[1] = if (self.owner_read) 'r' else '-';
+        buf[2] = if (self.owner_write) 'w' else '-';
+        buf[3] = if (self.owner_execute) 'x' else '-';
+        buf[4] = if (self.group_read) 'r' else '-';
+        buf[5] = if (self.group_write) 'w' else '-';
+        buf[6] = if (self.group_execute) 'x' else '-';
+        buf[7] = if (self.other_read) 'r' else '-';
+        buf[8] = if (self.other_write) 'w' else '-';
+        buf[9] = if (self.other_execute) 'x' else '-';
+        return buf;
+    }
 };
 
 // our file struct
 pub const File = struct { size: u8, permission: UnixPermissions };
 
-pub fn main(init: std.process.Init) !void {
-    var stderr_buf: [1024]u8 = undefined;
+pub fn main() !void {
+    const my_file = File{
+        .size = 128,
+        .permission = .{
+            .owner_read = true,
+            .owner_write = true,
+            .owner_execute = false,
+            .group_read = true,
+            .group_write = false,
+            .group_execute = false,
+            .other_read = true,
+            .other_write = false,
+            .other_execute = false,
+        },
+    };
 
-    var stderr_file = std.Io.File.stderr().writerStreaming(init.io, &stderr_buf);
-    const stderr = &stderr_file.interface;
+    // convert permission feild to POSIX
+    const raw_mode: u9 = @bitCast(my_file.permission);
 
-    // collect arguments
-    var arguments = try init.minimal.args.iterateAllocator(init.gpa);
-    defer arguments.deinit();
-    _ = arguments.next();
+    // we'll format the permissions string block
+    var string_buffer: [10]u8 = undefined;
+    const ls_format = my_file.permission.formatLs(&string_buffer);
 
-    var filename: ?[]const u8 = null;
-
-    // we'll loop through individual arguments
-    while (arguments.next()) |argument| {
-        if (std.mem.startsWith(u8, argument, "-")) {
-            print("{s}\n", .{argument});
-        } else {
-            if (filename != null) {
-                try stderr.print("error: unknown {s}", .{argument});
-
-                // must flush
-                try stderr_file.flush();
-
-                try printHelp();
-
-                std.process.exit(1);
-            }
-            filename = argument;
-            print("{s}\n", .{filename.?});
-        }
-    }
+    print("filesize: {} bytes\n", .{my_file.size});
+    print("permissions in octal: 0o{0}\n", .{raw_mode});
+    print("permissions string: {s}\n", .{ls_format});
 }
 
 fn printHelp() !void {
