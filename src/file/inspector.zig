@@ -3,6 +3,32 @@ const file = @import("file.zig");
 
 const print = std.debug.print;
 
+// for printing readable timestamps
+fn printTimestamp(label: []const u8, ts: anytype) void {
+    const timestamp: std.Io.Timestamp = switch (@typeInfo(@TypeOf(ts))) {
+        .optional => ts orelse return,
+        else => ts,
+    };
+    const ns = timestamp.nanoseconds;
+    const secs = @divFloor(ns, 1_000_000_000);
+
+    const epoch_seconds = std.time.epoch.EpochSeconds{ .secs = @intCast(secs) };
+    const epoch_day = epoch_seconds.getEpochDay();
+    const year_day = epoch_day.calculateYearDay();
+    const month_day = year_day.calculateMonthDay();
+    const day_secs = epoch_seconds.getDaySeconds();
+
+    print("||--{s}: {d:04}-{d:02}-{d:02}-{d:02}-{d:02}-{d:02} UTC\n", .{
+        label,
+        year_day.year,
+        @backingInt(month_day.month),
+        month_day.day_index + 1,
+        day_secs.getHoursIntoDay(),
+        day_secs.getMinutesIntoHour(),
+        day_secs.getSecondsIntoMinute(),
+    });
+}
+
 pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
     const cwd = std.Io.Dir.cwd();
 
@@ -38,15 +64,15 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
 
         // as timestamps in zig are Io.Timestamp structs we use 'any'
         if (@hasField(@TypeOf(stat), "atime")) {
-            print("    Accessed: {any}\n", .{stat.atime});
+            printTimestamp("Accessed", stat.atime);
         }
 
         if (@hasField(@TypeOf(stat), "mtime")) {
-            print("    Modified: {any}\n", .{stat.mtime});
+            printTimestamp("Modified", stat.mtime);
         }
 
         if (@hasField(@TypeOf(stat), "ctime")) {
-            print("    Created: {any}\n", .{stat.ctime});
+            printTimestamp("Created", stat.ctime);
         }
     }
 }
