@@ -3,30 +3,34 @@ const file = @import("file.zig");
 
 const print = std.debug.print;
 
-pub fn inspector(filename: []const u8, verbose: bool) !void {
-    // in current working fir
-    const target_file = std.fs.cwd().openFile(filename, .{}) catch {
-        print("error: meta could not read '{}'\n", .{filename});
+pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
+    const cwd = std.Io.Dir.cwd();
+
+    //  openFile
+    const target_file = cwd.openFile(io, filename, .{}) catch {
+        print("error: could not open file '{s}'\n", .{filename});
         return;
     };
+
     // close
-    defer target_file.close();
+    defer target_file.close(io);
 
     // metadata
-    const stat = try target_file.stat();
+    const stat = try target_file.stat(io);
 
-    // basic output (non-verbose)
+    // basic output(non-verbose)
     print("File: {s}\n", .{filename});
-    print("Size: {} bytes\n", .{stat.Size});
+    print("Size: {} bytes\n", .{stat.size});
 
-    // verbose
+    // verbose output
     if (verbose) {
-        print("Permissions(octal): 0o{}\n", .{stat.Permissions});
+        const mode = stat.permissions.toMode();
+        print("Permissions(octal): 0o{o}\n", .{mode});
 
+        // formatted like 'ls'
         var buf: [10]u8 = undefined;
-
-        const perms: file.UnixPermissions = @bitCast(@as(u9, @truncate(stat.mode)));
-        const lsFormatted = perms.formatLs(&buf);
-        print("Permissions(string): {s}\n", .{lsFormatted});
+        const perm: file.UnixPermissions = @bitCast(@as(u9, @truncate(mode)));
+        const formatted = perm.formatLs(&buf);
+        print("Permissions(string): {s}\n", .{formatted});
     }
 }

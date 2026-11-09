@@ -21,13 +21,13 @@ pub fn parseArgs(args: []const [:0]const u8) !Cli {
 
     for (args) |arg| {
         if (std.mem.eql(u8, arg, "-h")) {
-            help.printHelp();
+            try help.printHelp();
             return cliError.Help;
         } else if (std.mem.eql(u8, arg, "-v")) {
             config.verbose = true;
         } else if (arg[0] == '-') {
             print("error: unknown flag", .{});
-            help.printHelp();
+            try help.printHelp();
             return cliError.UnknownFlag;
         } else {
             if (config.filename != null) {
@@ -40,7 +40,7 @@ pub fn parseArgs(args: []const [:0]const u8) !Cli {
 
     // ensuring that a filename was provided
     if (config.filename == null) {
-        help.printHelp();
+        try help.printHelp();
         return cliError.MissingFileName;
     }
     return config;
