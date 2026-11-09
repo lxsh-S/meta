@@ -8,7 +8,7 @@ pub const Cli = struct {
     verbose: bool = false,
 };
 
-const cliError = error{
+pub const cliError = error{
     Help,
     UnknownFileName,
     MissingFileName,

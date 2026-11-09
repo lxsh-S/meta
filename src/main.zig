@@ -1,5 +1,6 @@
 const std = @import("std");
-const file = @import("file.zig");
+const file = @import("file/file.zig");
+const cli = @import("cli/cli.zig");
 
 const print = std.debug.print;
 
