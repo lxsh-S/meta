@@ -32,5 +32,21 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
         const perm: file.UnixPermissions = @bitCast(@as(u9, @truncate(mode)));
         const formatted = perm.formatLs(&buf);
         print("Permissions(string): {s}\n", .{formatted});
+
+        // timestamps
+        print("Timestamps:\n", .{});
+
+        // as timestamps in zig are Io.Timestamp structs we use 'any'
+        if (@hasField(@TypeOf(stat), "atime")) {
+            print("    Accessed: {any}\n", .{stat.atime});
+        }
+
+        if (@hasField(@TypeOf(stat), "mtime")) {
+            print("    Modified: {any}\n", .{stat.mtime});
+        }
+
+        if (@hasField(@TypeOf(stat), "ctime")) {
+            print("    Created: {any}\n", .{stat.ctime});
+        }
     }
 }

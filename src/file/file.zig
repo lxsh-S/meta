@@ -4,17 +4,17 @@ const print = std.debug.print;
 
 // defining the layout of permission bits
 pub const UnixPermissions = packed struct(u9) {
-    other_read: bool,
-    other_write: bool,
     other_execute: bool,
+    other_write: bool,
+    other_read: bool,
 
-    group_read: bool,
-    group_write: bool,
     group_execute: bool,
+    group_write: bool,
+    group_read: bool,
 
-    owner_read: bool,
-    owner_write: bool,
     owner_execute: bool,
+    owner_write: bool,
+    owner_read: bool,
 
     // Return the fromatted 10byte buffer
     pub fn formatLs(self: UnixPermissions, buf: *[10]u8) []const u8 {
