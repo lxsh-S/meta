@@ -3,6 +3,20 @@ const file = @import("file.zig");
 
 const print = std.debug.print;
 
+// ANSI Escape code consts
+const reset = "\x1b[0m";
+const bold = "\x1b[1m";
+
+const black = "\x1b[30m";
+const red = "\x1b[31m";
+const green = "\x1b[32m";
+const yellow = "\x1b[33m";
+const blue = "\x1b[34m";
+const magenta = "\x1b[35m";
+const cyan = "\x1b[36m";
+const white = "\x1b[37m";
+const grey = "\x1b[90m";
+
 // for printing readable timestamps
 fn printTimestamp(label: []const u8, ts: anytype) void {
     const timestamp: std.Io.Timestamp = switch (@typeInfo(@TypeOf(ts))) {
@@ -44,9 +58,18 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
     // metadata
     const stat = try target_file.stat(io);
 
+    // version
+    const version = 0.1;
+
+    // Name
+    print("{s}{s}*META* - {s}v{d}{s}", .{ bold, blue, grey, version, reset });
+
+    // seperator
+    print("\n{s}{s}-------------------------------------------------\n{s}", .{ bold, magenta, reset });
+
     // basic output(non-verbose)
-    print("File: {s}\n", .{filename});
-    print("Size: {} bytes\n", .{stat.size});
+    print("{s}File: {s}{s}{s}{s}\n", .{ white, bold, cyan, filename, reset });
+    print("{s}Size: {s}{s}{d} bytes{s}\n", .{ white, bold, red, stat.size, reset });
 
     // verbose output
     if (verbose) {
