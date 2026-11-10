@@ -17,6 +17,15 @@ const cyan = "\x1b[36m";
 const white = "\x1b[37m";
 const grey = "\x1b[90m";
 
+// more colors
+const orange = "\x1b[38;2;255;165;0m";
+const pink = "\x1b[38;2;255;105;180m";
+const mint_green = "\x1b[38;2;152;251;152m";
+const purple = "\x1b[38;2;128;0;128m";
+const gold = "\x1b[38;2;255;215;0m";
+const dark_grey = "\x1b[28;2;64;64;64m";
+const light_grey = "\x1b[38;2;211;211;211m";
+
 // for printing readable timestamps
 fn printTimestamp(label: []const u8, ts: anytype) void {
     const timestamp: std.Io.Timestamp = switch (@typeInfo(@TypeOf(ts))) {
@@ -32,8 +41,11 @@ fn printTimestamp(label: []const u8, ts: anytype) void {
     const month_day = year_day.calculateMonthDay();
     const day_secs = epoch_seconds.getDaySeconds();
 
-    print("||--{s}: {d:04}-{d:02}-{d:02}-{d:02}-{d:02}-{d:02} UTC\n", .{
+    print("{s}|--{s}: {s}{s}{d:04}-{d:02}-{d:02}-{d:02}-{d:02}-{d:02} UTC\n", .{
+        grey,
         label,
+        bold,
+        orange,
         year_day.year,
         @backingInt(month_day.month),
         month_day.day_index + 1,
@@ -61,29 +73,32 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
     // version
     const version = 0.1;
 
+    // empty space
+    print("\n", .{});
+
     // Name
-    print("{s}{s}*META* - {s}v{d}{s}", .{ bold, blue, grey, version, reset });
+    print("{s}{s}*META* - {s}v{d}{s}", .{ bold, blue, pink, version, reset });
 
     // seperator
     print("\n{s}{s}-------------------------------------------------\n{s}", .{ bold, magenta, reset });
 
     // basic output(non-verbose)
-    print("{s}File: {s}{s}{s}{s}\n", .{ white, bold, cyan, filename, reset });
-    print("{s}Size: {s}{s}{d} bytes{s}\n", .{ white, bold, red, stat.size, reset });
+    print("{s}File: {s}{s}{s}{s}\n", .{ grey, bold, cyan, filename, reset });
+    print("{s}Size: {s}{s}{d} bytes{s}\n", .{ grey, bold, red, stat.size, reset });
 
     // verbose output
     if (verbose) {
         const mode = stat.permissions.toMode();
-        print("Permissions(octal): 0o{o}\n", .{mode});
+        print("\n{s}Permissions(octal): {s}{s}0o{o}{s}\n", .{ grey, bold, yellow, mode, reset });
 
         // formatted like 'ls'
         var buf: [10]u8 = undefined;
         const perm: file.UnixPermissions = @bitCast(@as(u9, @truncate(mode)));
         const formatted = perm.formatLs(&buf);
-        print("Permissions(string): {s}\n", .{formatted});
+        print("{s}Permissions(string): {s}{s}{s}{s}\n", .{ grey, bold, yellow, formatted, reset });
 
         // timestamps
-        print("Timestamps:\n", .{});
+        print("\n{s}Timestamps:\n", .{grey});
 
         // as timestamps in zig are Io.Timestamp structs we use 'any'
         if (@hasField(@TypeOf(stat), "atime")) {
