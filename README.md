@@ -1,4 +1,5 @@
 # meta
+
 <img width="802" height="626" alt="image" src="https://github.com/user-attachments/assets/0b9f2d10-1dde-4301-a55a-de863de793ce" />
 
 # Overview
@@ -42,3 +43,7 @@ ln -s $(pwd)/zig-out/bin/meta ~/.local/bin/meta
 and dont forget to crosscheck that `~/.local/bin/` is in your included path
 
 THANKS FOR VISITING!
+
+## AI declaration
+
+Didnt use AI for this project except the mistake put in `for the reviewer`.
