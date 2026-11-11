@@ -2,6 +2,7 @@ const std = @import("std");
 const file = @import("file.zig");
 
 const print = std.debug.print;
+const Sha256 = std.crypto.hash.sha2.Sha256;
 
 // ANSI Escape code consts
 const reset = "\x1b[0m";
@@ -55,6 +56,21 @@ fn printTimestamp(label: []const u8, ts: anytype) void {
     });
 }
 
+fn computeSha256(io: anytype, target_file: anytype) ![Sha256.digest_length * 2]u8 {
+    var hasher = Sha256.init(.{});
+    var buf: [64 * 1024]u8 = undefined;
+
+    while (true) {
+        const bytes_read = target_file.readStreaming(io, &.{&buf}) catch |err| switch (err) {
+            error.EndOfStream => break,
+            else => return err,
+        };
+        hasher.update(buf[0..bytes_read]);
+    }
+
+    return std.fmt.bytesToHex(hasher.finalResult(), .lower);
+}
+
 pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
     const cwd = std.Io.Dir.cwd();
 
@@ -96,6 +112,10 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
         const perm: file.UnixPermissions = @bitCast(@as(u9, @truncate(mode)));
         const formatted = perm.formatLs(&buf);
         print("{s}Permissions(string): {s}{s}{s}{s}\n", .{ grey, bold, yellow, formatted, reset });
+
+        // checksum
+        const sha256_hex = try computeSha256(io, target_file);
+        print("\n{s}SHA-256: {s}{s}{s}{s}\n", .{ grey, bold, white, sha256_hex, reset });
 
         // timestamps
         print("\n{s}Timestamps:\n", .{grey});
