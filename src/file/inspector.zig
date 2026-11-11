@@ -1,5 +1,6 @@
 const std = @import("std");
 const file = @import("file.zig");
+const media = @import("mediaType.zig");
 
 const print = std.debug.print;
 const Sha256 = std.crypto.hash.sha2.Sha256;
@@ -56,19 +57,35 @@ fn printTimestamp(label: []const u8, ts: anytype) void {
     });
 }
 
-fn computeSha256(io: anytype, target_file: anytype) ![Sha256.digest_length * 2]u8 {
+fn inspectContent(io: anytype, target_file: anytype) !struct {
+    media: media.MediaType,
+    sha256: [Sha256.digest_length * 2]u8,
+} {
     var hasher = Sha256.init(.{});
     var buf: [64 * 1024]u8 = undefined;
+    var header_buf: [16]u8 = undefined;
+    var header_len: usize = 0;
 
     while (true) {
         const bytes_read = target_file.readStreaming(io, &.{&buf}) catch |err| switch (err) {
             error.EndOfStream => break,
             else => return err,
         };
+
+        // we'll capture the first 16 bytes for magc-byte detection
+        if (header_len < header_buf.len) {
+            const copy_len = @min(bytes_read, header_buf.len - header_len);
+            @memcpy(header_buf[header_len .. header_len + copy_len], buf[0..copy_len]);
+            header_len += copy_len;
+        }
+
         hasher.update(buf[0..bytes_read]);
     }
 
-    return std.fmt.bytesToHex(hasher.finalResult(), .lower);
+    return .{
+        .media = media.detectMediaType(header_buf[0..header_len]),
+        .sha256 = std.fmt.bytesToHex(hasher.finalResult(), .lower),
+    };
 }
 
 pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
@@ -102,6 +119,33 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
     print("{s}File: {s}{s}{s}{s}\n", .{ grey, bold, cyan, filename, reset });
     print("{s}Size: {s}{s}{d} bytes{s}\n", .{ grey, bold, red, stat.size, reset });
 
+    // file tyope
+    const kind_str = switch (stat.kind) {
+        .file => "Regular File",
+        .directory => "Directory",
+        .sym_link => "Symbolic Link",
+        .block_device => "Block Device",
+        .character_device => "Character device",
+        .named_pipe => "Named Pipe (FIFO)",
+        .unix_domain_socket => "Unix Domain Socket",
+        .whiteout => "Whiteout",
+        .door => "Door",
+        .event_port => "Event_port",
+        .unknown => "Unknown",
+    };
+
+    print("{s}Type: {s}{s}{s}{s}\n", .{ grey, bold, gold, kind_str, reset });
+
+    // media content
+    const content = try inspectContent(io, target_file);
+    const media_label = switch (content.media) {
+        .image => "Image",
+        .video => "Video",
+        .other => "Other / Binary / Text",
+    };
+
+    print("{s}Category: {s}{s}{s}{s}\n", .{ grey, bold, cyan, media_label, reset });
+
     // verbose output
     if (verbose) {
         const mode = stat.permissions.toMode();
@@ -112,10 +156,10 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
         const perm: file.UnixPermissions = @bitCast(@as(u9, @truncate(mode)));
         const formatted = perm.formatLs(&buf);
         print("{s}Permissions(string): {s}{s}{s}{s}\n", .{ grey, bold, yellow, formatted, reset });
-
+        //
         // checksum
-        const sha256_hex = try computeSha256(io, target_file);
-        print("\n{s}SHA-256: {s}{s}{s}{s}\n", .{ grey, bold, white, sha256_hex, reset });
+        const sha256_hex = try inspectContent(io, target_file);
+        print("\n{s}SHA-256: {s}{s}{s}{s}\n", .{ grey, bold, light_grey, sha256_hex.sha256, reset });
 
         // timestamps
         print("\n{s}Timestamps:\n", .{grey});

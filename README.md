@@ -19,5 +19,5 @@ ln -s $(pwd)/zig-out/bin/meta ~/.local/bin/meta
 - work with directories
 - img support (resolution)
 - vid (know its a video) (know teh playback time) (resolution)
-- checksum
+- checksum - x
 - Maybe TUI?
