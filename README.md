@@ -15,7 +15,7 @@ ln -s $(pwd)/zig-out/bin/meta ~/.local/bin/meta
 
 - add colors - x
 - Toggle what to display is '-v' using custom config script (.config/meta_)
-- display what type of file (text, img, vid)
+- display what type of file (text, img, vid) -x
 - work with directories
 - img support (resolution)
 - vid (know its a video) (know teh playback time) (resolution)

@@ -136,16 +136,25 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
 
     print("{s}Type: {s}{s}{s}{s}\n", .{ grey, bold, gold, kind_str, reset });
 
+    // only inspect if its a regular file
+    const is_regular_file = (stat.kind == .file);
+    var media_label: ?[]const u8 = null;
+    var sha256_hex_val: ?[Sha256.digest_length * 2]u8 = null;
+
+    if (is_regular_file) {
+        const content = try inspectContent(io, target_file);
+        media_label = switch (content.media) {
+            .image => "Image",
+            .video => "Video",
+            .other => "Other / Binary / Text",
+        };
+        sha256_hex_val = content.sha256;
+    }
+
     // media content
-    const content = try inspectContent(io, target_file);
-    const media_label = switch (content.media) {
-        .image => "Image",
-        .video => "Video",
-        .other => "Other / Binary / Text",
-    };
-
-    print("{s}Category: {s}{s}{s}{s}\n", .{ grey, bold, cyan, media_label, reset });
-
+    if (media_label) |ml| {
+        print("{s}Category: {s}{s}{s}{s}\n", .{ grey, bold, cyan, ml, reset });
+    }
     // verbose output
     if (verbose) {
         const mode = stat.permissions.toMode();
@@ -158,8 +167,11 @@ pub fn inspector(io: anytype, filename: []const u8, verbose: bool) !void {
         print("{s}Permissions(string): {s}{s}{s}{s}\n", .{ grey, bold, yellow, formatted, reset });
         //
         // checksum
-        const sha256_hex = try inspectContent(io, target_file);
-        print("\n{s}SHA-256: {s}{s}{s}{s}\n", .{ grey, bold, light_grey, sha256_hex.sha256, reset });
+        if (is_regular_file) {
+            if (sha256_hex_val) |s256| {
+                print("\n{s}SHA-256: {s}{s}{s}{s}\n", .{ grey, bold, light_grey, s256, reset });
+            }
+        }
 
         // timestamps
         print("\n{s}Timestamps:\n", .{grey});
